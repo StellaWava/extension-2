@@ -1,75 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GradMatch</title>
-  <link rel="stylesheet" href="../css/popup.css">
-  <script src="dist/src/popup.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Compare - MVP Demo</title>
 </head>
 <body>
-   <div id="message">Checking status...</div>
-  <div class="container">
-    <div class="header">
-      <img src="../images/logo.png" alt="GradMatch Logo" class="logo">
-      <h1>GradMatch</h1>
-    </div>
-    
-    <div id="profileSetup" class="section">
-      <h2>Your Academic Profile</h2>
-      
-      <form id="profileForm">
-        <div class="form-group">
-          <label for="degreeLevel">Desired Degree Level</label>
-          <select id="degreeLevel" name="degreeLevel" required>
-            <option value="">Select...</option>
-            <option value="masters">Master's</option>
-            <option value="phd">PhD</option>
-          </select>
+    <div class="demo-container">
+        <div class="header">
+            <h1>🎓 Course Compare Extension</h1>
+            <p>MVP Demo - Save and compare programs as you browse</p>
         </div>
-        
-        <div class="form-group">
-          <label for="gpa">GPA (on 4.0 scale)</label>
-          <input type="number" id="gpa" name="gpa" min="0" max="4" step="0.01" required>
+
+        <div class="main-content">
+            <!-- Sample University Page -->
+            <div class="sample-page">
+                <div class="program-info">
+                    <h1 class="program-title">Master of Computer Science</h1>
+                    <div class="university">Stanford University</div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Duration</div>
+                            <div class="info-value">2 Years</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Tuition (Annual)</div>
+                            <div class="info-value">$58,416</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Application Deadline</div>
+                            <div class="info-value">December 15</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">GRE Required</div>
+                            <div class="info-value">Optional</div>
+                        </div>
+                    </div>
+
+                    <div class="description">
+                        <p>The Master of Science in Computer Science program offers advanced study in areas including artificial intelligence, human-computer interaction, systems, theory, and interdisciplinary applications of computing.</p>
+                    </div>
+
+                    <button class="floating-save" id="floatingSave">+ Save to Compare</button>
+                </div>
+            </div>
+
+            <!-- Extension Panel -->
+            <div class="extension-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Course Compare</div>
+                    <div class="panel-subtitle">Browser Extension</div>
+                </div>
+
+                <button class="save-button" id="saveProgram">
+                    📌 Save This Program
+                </button>
+
+                <div class="saved-programs">
+                    <h3 style="font-size: 14px; color: #4a5568; margin-bottom: 15px;">Saved Programs (2/3)</h3>
+                    
+                    <div class="saved-item">
+                        <button class="remove-btn">×</button>
+                        <div class="saved-title">MS Computer Science</div>
+                        <div class="saved-uni">MIT</div>
+                        <div class="saved-details">
+                            <span>2 Years</span>
+                            <span>$55,510/yr</span>
+                            <span>Dec 15</span>
+                            <span>GRE: Required</span>
+                        </div>
+                    </div>
+
+                    <div class="saved-item">
+                        <button class="remove-btn">×</button>
+                        <div class="saved-title">MS in CS</div>
+                        <div class="saved-uni">UC Berkeley</div>
+                        <div class="saved-details">
+                            <span>1.5 Years</span>
+                            <span>$44,066/yr</span>
+                            <span>Dec 1</span>
+                            <span>GRE: Optional</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compare-section">
+                    <button class="compare-button" id="compareBtn">
+                        🔍 Compare Programs
+                    </button>
+                    <div class="free-limit">Free: Up to 3 programs</div>
+                </div>
+
+                <div class="upgrade-prompt">
+                    <strong>💎 Go Premium</strong><br>
+                    Unlimited saves + Export to spreadsheet<br>
+                    <small>Only $2/month</small>
+                </div>
+            </div>
         </div>
-        
-        <div class="form-group">
-          <label for="testScore">GRE/GMAT Score (optional)</label>
-          <input type="number" id="testScore" name="testScore" min="0">
-          <select id="testType" name="testType">
-            <option value="">Test Type</option>
-            <option value="gre">GRE</option>
-            <option value="gmat">GMAT</option>
-          </select>
+    </div>
+
+    <!-- Comparison Modal -->
+    <div class="comparison-modal" id="comparisonModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Program Comparison</h2>
+                <button class="close-btn" id="closeModal">×</button>
+            </div>
+            
+            <div class="comparison-table" id="comparisonTable">
+                <div class="table-cell table-header"></div>
+                <div class="table-cell table-header">MIT</div>
+                <div class="table-cell table-header">UC Berkeley</div>
+                <div class="table-cell table-header">Stanford</div>
+                
+                <div class="table-cell table-header">Program</div>
+                <div class="table-cell">MS Computer Science</div>
+                <div class="table-cell">MS in CS</div>
+                <div class="table-cell">Master of Computer Science</div>
+                
+                <div class="table-cell table-header">Duration</div>
+                <div class="table-cell">2 Years</div>
+                <div class="table-cell">1.5 Years</div>
+                <div class="table-cell">2 Years</div>
+                
+                <div class="table-cell table-header">Annual Tuition</div>
+                <div class="table-cell">$55,510</div>
+                <div class="table-cell">$44,066</div>
+                <div class="table-cell">$58,416</div>
+                
+                <div class="table-cell table-header">Deadline</div>
+                <div class="table-cell">December 15</div>
+                <div class="table-cell">December 1</div>
+                <div class="table-cell">December 15</div>
+                
+                <div class="table-cell table-header">GRE</div>
+                <div class="table-cell">Required</div>
+                <div class="table-cell">Optional</div>
+                <div class="table-cell">Optional</div>
+            </div>
         </div>
-        
-        <div class="form-group">
-          <label for="interests">Research Interests (comma separated)</label>
-          <textarea id="interests" name="interests" rows="2" placeholder="e.g., machine learning, fisheries, sociology"></textarea>
-        </div>
-        
-        <button type="submit" class="primary-btn">Save Profile</button>
-      </form>
     </div>
-    
-    <div id="profileView" class="section hidden">
-      <h2>Your Profile</h2>
-      <div id="profileSummary"></div>
-      <button id="editProfile" class="secondary-btn">Edit Profile</button>
-    </div>
-    
-    <div class="section">
-      <h2>Matched Programs</h2>
-      <div id="recentMatches">
-        <p class="empty-state">Program matches will appear here as you browse.</p>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p>GradMatch © 2025</p>
-    </div>
-  </div>
- 
-  <script src="dist/src/popup.js"></script>
+
+    <script>
+        // Simulated extension functionality
+        let savedPrograms = [
+            {
+                id: 1,
+                title: 'MS Computer Science',
+                university: 'MIT',
+                duration: '2 Years',
+                tuition: '$55,510/yr',
+                deadline: 'Dec 15',
+                gre: 'Required'
+            },
+            {
+                id: 2,
+                title: 'MS in CS',
+                university: 'UC Berkeley',
+                duration: '1.5 Years',
+                tuition: '$44,066/yr',
+                deadline: 'Dec 1',
+                gre: 'Optional'
+            }
+        ];
+
+        const maxFreePrograms = 3;
+
+        // Extract program data from current page (simulated)
+        function extractProgramData() {
+            return {
+                id: 3,
+                title: 'Master of Computer Science',
+                university: 'Stanford University',
+                duration: '2 Years',
+                tuition: '$58,416/yr',
+                deadline: 'Dec 15',
+                gre: 'Optional'
+            };
+        }
+
+        // Save program functionality
+        document.getElementById('saveProgram').addEventListener('click', function() {
+            if (savedPrograms.length >= maxFreePrograms) {
+                alert('Free limit reached! Upgrade to Premium for unlimited saves.');
+                return;
+            }
+
+            const programData = extractProgramData();
+            
+            // Check if already saved
+            if (savedPrograms.find(p => p.university === programData.university && p.title === programData.title)) {
+                alert('This program is already saved!');
+                return;
+            }
+
+            savedPrograms.push(programData);
+            updateSavedProgramsList();
+            
+            this.textContent = '✅ Saved!';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.textContent = '📌 Save This Program';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        // Update saved programs display
+        function updateSavedProgramsList() {
+            const container = document.querySelector('.saved-programs');
+            const header = container.querySelector('h3');
+            header.textContent = `Saved Programs (${savedPrograms.length}/${maxFreePrograms})`;
+        }
+
+        // Compare functionality
+        document.getElementById('compareBtn').addEventListener('click', function() {
+            if (savedPrograms.length < 2) {
+                alert('Save at least 2 programs to compare!');
+                return;
+            }
+            
+            document.getElementById('comparisonModal').style.display = 'flex';
+        });
+
+        // Close modal
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('comparisonModal').style.display = 'none';
+        });
+
+        // Close modal on outside click
+        document.getElementById('comparisonModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // Remove program functionality
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.parentElement.remove();
+                savedPrograms.pop(); // Simplified for demo
+                updateSavedProgramsList();
+            });
+        });
+
+        // Show floating save button on scroll (simulated)
+        let showFloating = false;
+        document.addEventListener('scroll', function() {
+            const floatingBtn = document.getElementById('floatingSave');
+            if (window.scrollY > 100 && !showFloating) {
+                floatingBtn.style.display = 'block';
+                showFloating = true;
+            } else if (window.scrollY <= 100 && showFloating) {
+                floatingBtn.style.display = 'none';
+                showFloating = false;
+            }
+        });
+
+        // Floating save functionality
+        document.getElementById('floatingSave').addEventListener('click', function() {
+            document.getElementById('saveProgram').click();
+        });
+
+        // Initialize
+        updateSavedProgramsList();
+    </script>
 </body>
 </html>
