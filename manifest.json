@@ -1,0 +1,33 @@
+{
+    "manifest_version": 3,
+    "name": "GradMatch - Graduate Program Advisor",
+    "version": "0.1.0",
+    "description": "Find and evaluate graduate programs based on your profile",
+    "icons": {
+      "16": "images/gai.png"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "images/gai.png"
+      }
+    },
+    "permissions": [
+      "storage",
+      "activeTab",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://*.edu/*"
+    ],
+ "background": {
+  "service_worker": "dist/background.js"
+},
+"content_scripts": [
+  {
+    "matches": ["https://*.edu/*"],
+    "js": ["dist/content.js"]
+  }
+]
+  }
+

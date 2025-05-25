@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GradMatch</title>
+  <link rel="stylesheet" href="../css/popup.css">
+  <script src="dist/src/popup.js"></script>
+</head>
+<body>
+   <div id="message">Checking status...</div>
+  <div class="container">
+    <div class="header">
+      <img src="../images/logo.png" alt="GradMatch Logo" class="logo">
+      <h1>GradMatch</h1>
+    </div>
+    
+    <div id="profileSetup" class="section">
+      <h2>Your Academic Profile</h2>
+      
+      <form id="profileForm">
+        <div class="form-group">
+          <label for="degreeLevel">Desired Degree Level</label>
+          <select id="degreeLevel" name="degreeLevel" required>
+            <option value="">Select...</option>
+            <option value="masters">Master's</option>
+            <option value="phd">PhD</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="gpa">GPA (on 4.0 scale)</label>
+          <input type="number" id="gpa" name="gpa" min="0" max="4" step="0.01" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="testScore">GRE/GMAT Score (optional)</label>
+          <input type="number" id="testScore" name="testScore" min="0">
+          <select id="testType" name="testType">
+            <option value="">Test Type</option>
+            <option value="gre">GRE</option>
+            <option value="gmat">GMAT</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="interests">Research Interests (comma separated)</label>
+          <textarea id="interests" name="interests" rows="2" placeholder="e.g., machine learning, fisheries, sociology"></textarea>
+        </div>
+        
+        <button type="submit" class="primary-btn">Save Profile</button>
+      </form>
+    </div>
+    
+    <div id="profileView" class="section hidden">
+      <h2>Your Profile</h2>
+      <div id="profileSummary"></div>
+      <button id="editProfile" class="secondary-btn">Edit Profile</button>
+    </div>
+    
+    <div class="section">
+      <h2>Matched Programs</h2>
+      <div id="recentMatches">
+        <p class="empty-state">Program matches will appear here as you browse.</p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>GradMatch © 2025</p>
+    </div>
+  </div>
+ 
+  <script src="dist/src/popup.js"></script>
+</body>
+</html>

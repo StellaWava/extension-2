@@ -1,0 +1,13 @@
+{
+  "name": "ts-extension",
+  "version": "1.0.0",
+  "description": "GradMatch - Graduate Program Advisor",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.322",
+    "typescript": "^5.3.0"
+  }
+}
