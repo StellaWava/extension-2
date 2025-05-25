@@ -269,3 +269,128 @@
     </script>
 </body>
 </html>
+
+
+//New one 
+
+<!-- src/popup.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Compare</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <header class="popup-header">
+            <div class="logo">
+                <span class="logo-icon">🎓</span>
+                <h1>Course Compare</h1>
+            </div>
+            <div class="version">v1.0</div>
+        </header>
+
+        <main class="popup-main">
+            <!-- Current Page Section -->
+            <section class="current-page" id="currentPageSection">
+                <div class="section-header">
+                    <h2>Current Page</h2>
+                    <span class="status" id="pageStatus">Analyzing...</span>
+                </div>
+                
+                <div class="page-info" id="pageInfo">
+                    <div class="page-title" id="pageTitle">Loading...</div>
+                    <div class="page-url" id="pageUrl"></div>
+                </div>
+
+                <button class="save-btn" id="saveBtn" disabled>
+                    <span class="btn-icon">📌</span>
+                    <span class="btn-text">Save This Program</span>
+                </button>
+            </section>
+
+            <!-- Saved Programs Section -->
+            <section class="saved-programs">
+                <div class="section-header">
+                    <h2>Saved Programs</h2>
+                    <span class="count" id="programCount">0/3</span>
+                </div>
+
+                <div class="programs-list" id="programsList">
+                    <!-- Programs will be populated here -->
+                </div>
+
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📚</div>
+                    <p>No programs saved yet</p>
+                    <small>Visit program pages and click "Save This Program"</small>
+                </div>
+            </section>
+
+            <!-- Actions Section -->
+            <section class="actions">
+                <button class="compare-btn" id="compareBtn" disabled>
+                    <span class="btn-icon">🔍</span>
+                    Compare Programs
+                </button>
+                
+                <button class="export-btn" id="exportBtn" disabled>
+                    <span class="btn-icon">📊</span>
+                    Export to Spreadsheet
+                    <span class="premium-badge">Premium</span>
+                </button>
+            </section>
+
+            <!-- Premium Upgrade -->
+            <section class="premium-section" id="premiumSection">
+                <div class="premium-card">
+                    <div class="premium-header">
+                        <span class="premium-icon">💎</span>
+                        <h3>Go Premium</h3>
+                    </div>
+                    <ul class="premium-features">
+                        <li>Unlimited saved programs</li>
+                        <li>Export to spreadsheet</li>
+                        <li>Advanced comparison features</li>
+                        <li>Application deadline reminders</li>
+                    </ul>
+                    <button class="upgrade-btn" id="upgradeBtn">
+                        Upgrade for $2/month
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="popup-footer">
+            <div class="footer-links">
+                <a href="#" id="settingsLink">Settings</a>
+                <a href="#" id="helpLink">Help</a>
+                <a href="#" id="feedbackLink">Feedback</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Comparison Modal -->
+    <div class="modal-overlay" id="comparisonModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Program Comparison</h2>
+                <button class="close-btn" id="closeModal">×</button>
+            </div>
+            <div class="modal-content" id="comparisonContent">
+                <!-- Comparison table will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html> -->
