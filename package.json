@@ -4,36 +4,22 @@
   "description": "Browser extension to save and compare university programs",
   "main": "dist/background.js",
   "scripts": {
-    "build": "webpack --mode=production",
-    "dev": "webpack --mode=development --watch",
-    "clean": "rimraf dist",
-    "lint": "eslint src/**/*.ts",
-    "test": "jest"
+    "build": "tsc && npm run copy-assets",
+    "copy-assets": "copyfiles icons/**/* src/popup/**/* manifest.json dist/",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.246",
+    "typescript": "^5.2.2",
+    "copyfiles": "^2.4.1"
   },
   "keywords": [
     "browser-extension",
     "education",
     "university",
-    "comparison"
+    "course-comparison"
   ],
-  "author": "Your Name",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/chrome": "^0.0.236",
-    "@types/jest": "^29.5.5",
-    "@typescript-eslint/eslint-plugin": "^6.7.4",
-    "@typescript-eslint/parser": "^6.7.4",
-    "copy-webpack-plugin": "^11.0.0",
-    "css-loader": "^6.8.1",
-    "eslint": "^8.50.0",
-    "html-webpack-plugin": "^5.5.3",
-    "jest": "^29.7.0",
-    "mini-css-extract-plugin": "^2.7.6",
-    "rimraf": "^5.0.5",
-    "ts-jest": "^29.1.1",
-    "ts-loader": "^9.4.4",
-    "typescript": "^5.2.2",
-    "webpack": "^5.99.9",
-    "webpack-cli": "^6.0.1"
-  }
+  "author": "Course Compare Team",
+  "license": "MIT"
 }

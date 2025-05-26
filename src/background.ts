@@ -1,162 +1,79 @@
-// src/background.ts
+import { StorageManager } from './utils/storage';
 
-import { ProgramData, StorageData, Message, MessageResponse, UserSettings } from './types';
+// Log when the extension is installed
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('[Background] Course Compare Extension installed');
 
-class BackgroundService {
-  private defaultSettings: UserSettings = {
-    isPremium: false,
-    maxSavedPrograms: 3,
-    autoSave: false,
-    notificationsEnabled: true,
-  };
-
-  constructor() {
-    this.initializeStorage();
-    this.setupMessageListeners();
-    this.setupContextMenus();
+  try {
+    const data = await StorageManager.getData();
+    await StorageManager.saveData(data);
+  } catch (err) {
+    console.error('[Background] Failed to initialize storage:', err);
   }
+});
 
-  private async initializeStorage(): Promise<void> {
+// Log when service worker wakes up on browser startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log('[Background] Service worker started');
+});
+
+// Listen to messages from popup or content scripts
+chrome.runtime.onMessage.addListener((request: Record<string, any>, sender, sendResponse) => {
+  console.log('[Background] Received message:', request);
+
+  (async () => {
     try {
-      const result = await chrome.storage.local.get(['savedPrograms', 'settings']);
-      
-      if (!result.savedPrograms) {
-        await chrome.storage.local.set({ savedPrograms: [] });
-      }
-      
-      if (!result.settings) {
-        await chrome.storage.local.set({ settings: this.defaultSettings });
-      }
-    } catch (error) {
-      console.error('Failed to initialize storage:', error);
-    }
-  }
+      switch (request.action) {
+        case 'saveProgram': {
+          const success = await StorageManager.addProgram(request.data);
+          console.log('[Background] saveProgram result:', success);
+          sendResponse({ success, message: success ? 'Program saved!' : 'Already saved' });
+          break;
+        }
 
-  private setupMessageListeners(): void {
-    chrome.runtime.onMessage.addListener(
-      (message: Message, sender, sendResponse) => {
-        this.handleMessage(message).then(sendResponse);
-        return true; // Keep the message channel open for async response
-      }
-    );
-  }
+        case 'getPrograms': {
+          const programs = await StorageManager.getPrograms();
+          console.log('[Background] Returning programs:', programs);
+          sendResponse({ programs });
+          break;
+        }
 
-  private setupContextMenus(): void {
-    chrome.runtime.onInstalled.addListener(() => {
-      chrome.contextMenus.create({
-        id: 'save-program',
-        title: 'Save this program to compare',
-        contexts: ['page', 'selection'],
-      });
-    });
+        case 'removeProgram': {
+          await StorageManager.removeProgram(request.id);
+          console.log('[Background] Program removed:', request.id);
+          sendResponse({ success: true });
+          break;
+        }
 
-    chrome.contextMenus.onClicked.addListener((info, tab) => {
-      if (info.menuItemId === 'save-program' && tab?.id) {
-        this.triggerProgramExtraction(tab.id);
-      }
-    });
-  }
+        case 'checkLimits': {
+          const storageData = await StorageManager.getData();
+          const canSave = storageData.isPremium || storageData.programs.length < storageData.settings.maxFreePrograms;
+          console.log('[Background] checkLimits:', {
+            canSave,
+            count: storageData.programs.length,
+            limit: storageData.settings.maxFreePrograms,
+            isPremium: storageData.isPremium
+          });
+          sendResponse({
+            canSave,
+            count: storageData.programs.length,
+            limit: storageData.settings.maxFreePrograms,
+            isPremium: storageData.isPremium
+          });
+          break;
+        }
 
-  private async handleMessage(message: Message): Promise<MessageResponse> {
-    try {
-      switch (message.type) {
-        case 'SAVE_PROGRAM':
-          return await this.saveProgram(message.payload);
-        
-        case 'GET_SAVED_PROGRAMS':
-          return await this.getSavedPrograms();
-        
-        case 'REMOVE_PROGRAM':
-          return await this.removeProgram(message.payload.id);
-        
-        case 'UPDATE_SETTINGS':
-          return await this.updateSettings(message.payload);
-        
         default:
-          return { success: false, error: 'Unknown message type' };
+          console.warn('[Background] Unknown action:', request.action);
+          sendResponse({ error: 'Unknown action' });
       }
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  }
-
-  private async saveProgram(programData: ProgramData): Promise<MessageResponse> {
-    const { savedPrograms, settings } = await chrome.storage.local.get(['savedPrograms', 'settings']);
-    
-    // Check if program already exists
-    const existingProgram = savedPrograms.find((p: ProgramData) => 
-      p.url === programData.url || 
-      (p.title === programData.title && p.university === programData.university)
-    );
-    
-    if (existingProgram) {
-      return { success: false, error: 'Program already saved' };
-    }
-
-    // Check free tier limits
-    if (!settings.isPremium && savedPrograms.length >= settings.maxSavedPrograms) {
-      return { success: false, error: 'Free tier limit reached. Upgrade to Premium for unlimited saves.' };
-    }
-
-    // Add unique ID and timestamp
-    const newProgram: ProgramData = {
-      ...programData,
-      id: this.generateId(),
-      extractedAt: Date.now(),
-    };
-
-    const updatedPrograms = [...savedPrograms, newProgram];
-    await chrome.storage.local.set({ savedPrograms: updatedPrograms });
-
-    // Show notification
-    if (settings.notificationsEnabled) {
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon48.png',
-        title: 'Course Compare',
-        message: `Saved: ${programData.title} at ${programData.university}`,
+      console.error('[Background] Error handling message:', error);
+      sendResponse({
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
+  })();
 
-    return { success: true, data: newProgram };
-  }
-
-  private async getSavedPrograms(): Promise<MessageResponse> {
-    const { savedPrograms } = await chrome.storage.local.get('savedPrograms');
-    return { success: true, data: savedPrograms || [] };
-  }
-
-  private async removeProgram(programId: string): Promise<MessageResponse> {
-    const { savedPrograms } = await chrome.storage.local.get('savedPrograms');
-    const updatedPrograms = savedPrograms.filter((p: ProgramData) => p.id !== programId);
-    await chrome.storage.local.set({ savedPrograms: updatedPrograms });
-    return { success: true, data: updatedPrograms };
-  }
-
-  private async updateSettings(newSettings: Partial<UserSettings>): Promise<MessageResponse> {
-    const { settings } = await chrome.storage.local.get('settings');
-    const updatedSettings = { ...settings, ...newSettings };
-    await chrome.storage.local.set({ settings: updatedSettings });
-    return { success: true, data: updatedSettings };
-  }
-
-  private async triggerProgramExtraction(tabId: number): Promise<void> {
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        func: () => {
-          window.dispatchEvent(new CustomEvent('courseCompareExtract'));
-        },
-      });
-    } catch (error) {
-      console.error('Failed to trigger program extraction:', error);
-    }
-  }
-
-  private generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-  }
-}
-
-// Initialize the background service
-new BackgroundService();
+  return true; // Required for async sendResponse
+});

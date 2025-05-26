@@ -1,401 +1,387 @@
-// src/popup.ts
+// src/popup/popup.ts
+import { ProgramData } from '../types/program';
 
-import { ProgramData, UserSettings, Message, MessageResponse } from './types';
-
-class PopupController {
-  private savedPrograms: ProgramData[] = [];
-  private settings: UserSettings = {
-    isPremium: false,
-    maxSavedPrograms: 3,
-    autoSave: false,
-    notificationsEnabled: true,
-  };
+class PopupManager {
+  private programs: ProgramData[] = [];
+  private isPremium = false;
+  private maxFreePrograms = 3;
 
   constructor() {
     this.init();
   }
 
   private async init(): Promise<void> {
-    await this.loadData();
+    await this.loadPrograms();
+    await this.checkCurrentPage();
     this.setupEventListeners();
     this.updateUI();
-    this.analyzeCurrentPage();
   }
 
-  private async loadData(): Promise<void> {
+  private async loadPrograms(): Promise<void> {
     try {
-      const programsResponse = await this.sendMessage({ type: 'GET_SAVED_PROGRAMS' });
-      if (programsResponse.success) {
-        this.savedPrograms = programsResponse.data || [];
-      }
+      const response = await this.sendMessage({ action: 'getPrograms' });
+      this.programs = response.programs || [];
 
-      const settingsData = await chrome.storage.local.get('settings');
-      if (settingsData.settings) {
-        this.settings = settingsData.settings;
-      }
+      const limitsResponse = await this.sendMessage({ action: 'checkLimits' });
+      this.isPremium = limitsResponse.isPremium || false;
+      this.maxFreePrograms = limitsResponse.limit || 3;
+
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to load programs:', error);
     }
+  }
+
+  private async checkCurrentPage(): Promise<void> {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  
+      if (!tab.url || !tab.title) {
+        this.hideCurrentPageSection();
+        return;
+      }
+  
+      const isUniversityPage = this.isUniversityURL(tab.url);
+  
+      if (!isUniversityPage) {
+        this.hideCurrentPageSection();
+        return;
+      }
+  
+      // Extract school name and program name from the page
+      const schoolName = this.extractSchoolName(tab.url);
+      const programName = this.extractProgramName(tab.title);
+  
+      // Show popup message
+      this.showPopupMessage(schoolName, programName);
+  
+      // Rest of the existing code...
+    } catch (error) {
+      console.error('Failed to check current page:', error);
+    }
+  }
+
+  private isUniversityURL(url: string): boolean {
+    const patterns = [
+      /\.edu\//,
+      /\.ac\.uk\//,
+      /\/programs?\//,
+      /\/courses?\//,
+      /\/degrees?\//,
+      /\/admissions?\//
+    ];
+    return patterns.some(pattern => pattern.test(url.toLowerCase()));
+  }
+  private extractSchoolName(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname.toLowerCase();
+      const parts = domain.split('.');
+      
+      // Try to extract school name from domain
+      if (parts.length > 2) {
+        return parts[0].replace(/-/g, ' ').replace(/\d+/g, '');
+      }
+      return 'This university';
+    } catch (error) {
+      console.error('Failed to extract school name:', error);
+      return 'This university';
+    }
+  }
+  
+  private extractProgramName(title: string): string {
+    try {
+      // Try to extract program name from title
+      const programKeywords = ['program', 'degree', 'major', 'bachelor', 'master', 'phd'];
+      const titleLower = title.toLowerCase();
+      
+      for (const keyword of programKeywords) {
+        const index = titleLower.indexOf(keyword);
+        if (index > -1) {
+          const programPart = title.substring(index).split(' - ')[0];
+          return programPart.replace(/\s+/g, ' ').trim();
+        }
+      }
+      return 'this program';
+    } catch (error) {
+      console.error('Failed to extract program name:', error);
+      return 'this program';
+    }
+  }
+  
+  private showPopupMessage(schoolName: string, programName: string): void {
+    try {
+      const message = `This is ${schoolName} page for ${programName}`;
+      
+      // Create or update the popup message element
+      let popupMessage = document.getElementById('popupMessage');
+      if (!popupMessage) {
+        popupMessage = document.createElement('div');
+        popupMessage.id = 'popupMessage';
+        popupMessage.className = 'popup-message';
+        document.body.appendChild(popupMessage);
+      }
+      
+      popupMessage.textContent = message;
+      popupMessage.style.display = 'block';
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        popupMessage.style.display = 'none';
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to show popup message:', error);
+    }
+  }
+
+  private hideCurrentPageSection(): void {
+    const section = document.getElementById('currentPageSection');
+    if (section) section.style.display = 'none';
   }
 
   private setupEventListeners(): void {
-    // Save button
-    document.getElementById('saveBtn')?.addEventListener('click', () => {
-      this.saveCurrentProgram();
+    document.getElementById('saveCurrentBtn')?.addEventListener('click', () => this.saveCurrentProgram());
+    document.getElementById('compareBtn')?.addEventListener('click', () => this.showComparisonModal());
+    document.getElementById('closeModal')?.addEventListener('click', () => this.hideComparisonModal());
+    document.getElementById('comparisonModal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) this.hideComparisonModal();
     });
-
-    // Compare button
-    document.getElementById('compareBtn')?.addEventListener('click', () => {
-      this.showComparison();
-    });
-
-    // Export button
-    document.getElementById('exportBtn')?.addEventListener('click', () => {
-      if (this.settings.isPremium) {
-        this.exportToSpreadsheet();
-      } else {
-        this.showPremiumPrompt();
-      }
-    });
-
-    // Upgrade button
-    document.getElementById('upgradeBtn')?.addEventListener('click', () => {
-      this.handleUpgrade();
-    });
-
-    // Close modal
-    document.getElementById('closeModal')?.addEventListener('click', () => {
-      this.hideComparison();
-    });
-
-    // Settings, help, feedback links
-    document.getElementById('settingsLink')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.openSettings();
-    });
-
-    document.getElementById('helpLink')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      chrome.tabs.create({ url: 'https://github.com/your-repo/course-compare#help' });
-    });
-
-    document.getElementById('feedbackLink')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      chrome.tabs.create({ url: 'https://forms.google.com/your-feedback-form' });
-    });
-  }
-
-  private async analyzeCurrentPage(): Promise<void> {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab.url || !tab.id) return;
-
-      const pageTitle = document.getElementById('pageTitle')!;
-      const pageUrl = document.getElementById('pageUrl')!;
-      const pageStatus = document.getElementById('pageStatus')!;
-      const saveBtn = document.getElementById('saveBtn')! as HTMLButtonElement;
-
-      pageTitle.textContent = tab.title || 'Unknown Page';
-      pageUrl.textContent = new URL(tab.url).hostname;
-
-      // Check if this looks like a program page
-      const isProgramPage = await this.detectProgramPage(tab);
-      
-      if (isProgramPage) {
-        pageStatus.textContent = 'Program detected';
-        pageStatus.className = 'status status-success';
-        saveBtn.disabled = false;
-      } else {
-        pageStatus.textContent = 'No program detected';
-        pageStatus.className = 'status status-inactive';
-        saveBtn.disabled = true;
-      }
-
-      // Check if already saved
-      const alreadySaved = this.savedPrograms.some(p => p.url === tab.url);
-      if (alreadySaved) {
-        saveBtn.textContent = '✅ Already Saved';
-        saveBtn.disabled = true;
-      }
-
-    } catch (error) {
-      console.error('Failed to analyze current page:', error);
-    }
-  }
-
-  private async detectProgramPage(tab: chrome.tabs.Tab): Promise<boolean> {
-    const indicators = [
-      'program', 'course', 'degree', 'masters', 'bachelor', 'phd', 'doctorate',
-      'tuition', 'admission', 'university', 'college'
-    ];
-
-    const url = tab.url?.toLowerCase() || '';
-    const title = tab.title?.toLowerCase() || '';
-
-    return indicators.some(indicator => 
-      url.includes(indicator) || title.includes(indicator)
-    );
+    document.getElementById('exportBtn')?.addEventListener('click', () => this.exportToCSV());
+    document.getElementById('upgradeBtn')?.addEventListener('click', () => this.handleUpgrade());
   }
 
   private async saveCurrentProgram(): Promise<void> {
-    this.showLoading(true);
-    
+    const saveBtn = document.getElementById('saveCurrentBtn') as HTMLButtonElement;
+    const btnText = saveBtn.querySelector('.btn-text')!;
+    const btnIcon = saveBtn.querySelector('.btn-icon')!;
+
     try {
+      saveBtn.disabled = true;
+      btnText.textContent = 'Saving...';
+      btnIcon.textContent = '⏳';
+
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab.id) throw new Error('No active tab');
 
-      // Trigger content script extraction
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: () => {
-          window.dispatchEvent(new CustomEvent('courseCompareExtract'));
-        }
-      });
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'extractProgram' });
+      if (!response?.data) throw new Error('Failed to extract program data');
 
-      // Reload data after a short delay
-      setTimeout(async () => {
-        await this.loadData();
+      const saveResponse = await this.sendMessage({ action: 'saveProgram', data: response.data });
+
+      if (saveResponse.success) {
+        btnText.textContent = 'Saved!';
+        btnIcon.textContent = '✅';
+        await this.loadPrograms();
         this.updateUI();
-        this.analyzeCurrentPage();
-        this.showLoading(false);
-      }, 1500);
+
+        setTimeout(() => {
+          saveBtn.disabled = true;
+          btnText.textContent = 'Already Saved';
+        }, 2000);
+      } else {
+        throw new Error(saveResponse.message || 'Failed to save');
+      }
 
     } catch (error) {
-      console.error('Failed to save program:', error);
-      this.showLoading(false);
-      this.showNotification('Failed to save program', 'error');
+      btnText.textContent = 'Error';
+      btnIcon.textContent = '❌';
+      console.error('Save error:', error);
+
+      setTimeout(() => {
+        btnText.textContent = 'Save This Program';
+        btnIcon.textContent = '📌';
+        saveBtn.disabled = false;
+      }, 2000);
     }
   }
 
   private updateUI(): void {
-    this.updateProgramCount();
     this.updateProgramsList();
+    this.updateCountBadge();
     this.updateCompareButton();
-    this.updatePremiumSection();
-  }
-
-  private updateProgramCount(): void {
-    const countElement = document.getElementById('programCount')!;
-    const max = this.settings.maxSavedPrograms;
-    countElement.textContent = `${this.savedPrograms.length}/${this.settings.isPremium ? '∞' : max}`;
+    this.updateUpgradeSection();
   }
 
   private updateProgramsList(): void {
-    const listElement = document.getElementById('programsList')!;
-    const emptyState = document.getElementById('emptyState')!;
+    const programsList = document.getElementById('programsList');
+    const emptyState = document.getElementById('emptyState');
 
-    if (this.savedPrograms.length === 0) {
-      listElement.style.display = 'none';
+    if (!programsList || !emptyState) return;
+
+    if (this.programs.length === 0) {
       emptyState.style.display = 'block';
       return;
     }
 
-    listElement.style.display = 'block';
     emptyState.style.display = 'none';
+    programsList.querySelectorAll('.program-item').forEach(item => item.remove());
 
-    listElement.innerHTML = this.savedPrograms.map(program => `
-      <div class="program-item" data-id="${program.id}">
-        <div class="program-header">
+    this.programs.forEach(program => {
+      const programElement = this.createProgramElement(program);
+      programsList.appendChild(programElement);
+    });
+  }
+
+  private createProgramElement(program: ProgramData): HTMLElement {
+    const div = document.createElement('div');
+    div.className = 'program-item';
+    div.innerHTML = `
+      <div class="program-header">
+        <div>
+          <div class="program-university">${program.university}</div>
           <div class="program-title">${program.title}</div>
-          <button class="remove-btn" onclick="popupController.removeProgram('${program.id}')">×</button>
-        </div>
-        <div class="program-university">${program.university}</div>
-        <div class="program-details">
-          ${program.duration ? `<span class="detail">${program.duration}</span>` : ''}
-          ${program.tuition ? `<span class="detail">${program.tuition}</span>` : ''}
-          ${program.deadline ? `<span class="detail">Due: ${program.deadline}</span>` : ''}
-        </div>
-        <div class="program-meta">
-          <span class="program-url">${new URL(program.url).hostname}</span>
-          <span class="program-date">${this.formatDate(program.extractedAt)}</span>
         </div>
       </div>
-    `).join('');
+      <div class="program-details">
+        ${program.duration ? `<div class="program-detail"><span>Duration:</span><span>${program.duration}</span></div>` : ''}
+        ${program.tuition ? `<div class="program-detail"><span>Tuition:</span><span>${program.tuition}</span></div>` : ''}
+        ${program.deadline ? `<div class="program-detail"><span>Deadline:</span><span>${program.deadline}</span></div>` : ''}
+        ${program.gre ? `<div class="program-detail"><span>GRE:</span><span>${program.gre}</span></div>` : ''}
+      </div>
+      <button class="remove-btn" data-id="${program.id}">×</button>
+    `;
+
+    const removeBtn = div.querySelector('.remove-btn') as HTMLButtonElement;
+    removeBtn.addEventListener('click', () => this.removeProgram(program.id));
+    return div;
   }
 
-  private updateCompareButton(): void {
-    const compareBtn = document.getElementById('compareBtn')! as HTMLButtonElement;
-    compareBtn.disabled = this.savedPrograms.length < 2;
-  }
-
-  private updatePremiumSection(): void {
-    const premiumSection = document.getElementById('premiumSection')!;
-    const exportBtn = document.getElementById('exportBtn')! as HTMLButtonElement;
-    
-    if (this.settings.isPremium) {
-      premiumSection.style.display = 'none';
-      exportBtn.disabled = this.savedPrograms.length === 0;
-    } else {
-      premiumSection.style.display = 'block';
-      exportBtn.disabled = true;
-    }
-  }
-
-  public async removeProgram(programId: string): Promise<void> {
+  private async removeProgram(id: string): Promise<void> {
     try {
-      const response = await this.sendMessage({
-        type: 'REMOVE_PROGRAM',
-        payload: { id: programId }
-      });
-
-      if (response.success) {
-        await this.loadData();
-        this.updateUI();
-        this.analyzeCurrentPage();
-      }
+      await this.sendMessage({ action: 'removeProgram', id });
+      await this.loadPrograms();
+      this.updateUI();
     } catch (error) {
       console.error('Failed to remove program:', error);
     }
   }
 
-  private showComparison(): void {
-    const modal = document.getElementById('comparisonModal')!;
-    const content = document.getElementById('comparisonContent')!;
-    
-    content.innerHTML = this.generateComparisonTable();
-    modal.style.display = 'flex';
+  private updateCountBadge(): void {
+    const countBadge = document.getElementById('countBadge');
+    if (countBadge) {
+      const limit = this.isPremium ? '∞' : this.maxFreePrograms.toString();
+      countBadge.textContent = `${this.programs.length}/${limit}`;
+    }
   }
 
-  private hideComparison(): void {
-    const modal = document.getElementById('comparisonModal')!;
-    modal.style.display = 'none';
+  private updateCompareButton(): void {
+    const compareBtn = document.getElementById('compareBtn') as HTMLButtonElement;
+    if (compareBtn) compareBtn.disabled = this.programs.length < 2;
+  }
+
+  private updateUpgradeSection(): void {
+    const upgradeSection = document.getElementById('upgradeSection');
+    const premiumBadge = document.getElementById('premiumBadge');
+    if (!upgradeSection || !premiumBadge) return;
+
+    if (this.isPremium) {
+      upgradeSection.style.display = 'none';
+      premiumBadge.style.display = 'block';
+    } else {
+      upgradeSection.style.display = 'block';
+      premiumBadge.style.display = 'none';
+    }
+  }
+
+  private showComparisonModal(): void {
+    const modal = document.getElementById('comparisonModal');
+    const container = document.getElementById('comparisonContainer');
+    const exportBtn = document.getElementById('exportBtn');
+
+    if (!modal || !container || !exportBtn) return;
+
+    container.innerHTML = this.generateComparisonTable();
+    exportBtn.style.display = this.isPremium ? 'block' : 'none';
+    modal.classList.add('active');
+  }
+
+  private hideComparisonModal(): void {
+    const modal = document.getElementById('comparisonModal');
+    if (modal) modal.classList.remove('active');
   }
 
   private generateComparisonTable(): string {
-    if (this.savedPrograms.length === 0) return '<p>No programs to compare</p>';
+    if (this.programs.length === 0) return '<p>No programs to compare</p>';
 
-    const fields = ['University', 'Duration', 'Tuition', 'Deadline', 'GRE'];
-    
+    const fields = [
+      { key: 'university', label: 'University' },
+      { key: 'title', label: 'Program' },
+      { key: 'duration', label: 'Duration' },
+      { key: 'tuition', label: 'Tuition' },
+      { key: 'deadline', label: 'Deadline' },
+      { key: 'gre', label: 'GRE' }
+    ];
+
     let html = '<div class="comparison-table">';
-    
-    // Header row
-    html += '<div class="table-row table-header">';
-    html += '<div class="table-cell">Program</div>';
-    this.savedPrograms.forEach(program => {
-      html += `<div class="table-cell">${program.title}</div>`;
-    });
-    html += '</div>';
+    html += '<div class="table-cell table-header"></div>';
 
-    // Data rows
-    fields.forEach(field => {
-      html += '<div class="table-row">';
-      html += `<div class="table-cell table-label">${field}</div>`;
-      
-      this.savedPrograms.forEach(program => {
-        let value = '';
-        switch (field) {
-          case 'University': value = program.university; break;
-          case 'Duration': value = program.duration || 'N/A'; break;
-          case 'Tuition': value = program.tuition || 'N/A'; break;
-          case 'Deadline': value = program.deadline || 'N/A'; break;
-          case 'GRE': value = program.gre || 'N/A'; break;
-        }
+    this.programs.forEach(p => {
+      html += `<div class="table-cell table-header">${p.university}</div>`;
+    });
+
+    fields.forEach(f => {
+      html += `<div class="table-cell table-row-header">${f.label}</div>`;
+      this.programs.forEach(p => {
+        const value = p[f.key as keyof ProgramData] || 'N/A';
         html += `<div class="table-cell">${value}</div>`;
       });
-      
-      html += '</div>';
     });
 
     html += '</div>';
     return html;
   }
 
-  private exportToSpreadsheet(): void {
-    if (!this.settings.isPremium) {
-      this.showPremiumPrompt();
+  private exportToCSV(): void {
+    if (!this.isPremium) {
+      alert('CSV export is a Premium feature. Upgrade to unlock!');
       return;
     }
 
-    const csvContent = this.generateCSV();
+    const headers = ['University', 'Program', 'Duration', 'Tuition', 'Deadline', 'GRE', 'URL'];
+    const rows = this.programs.map(p => [
+      p.university,
+      p.title,
+      p.duration || '',
+      p.tuition || '',
+      p.deadline || '',
+      p.gre || '',
+      p.url
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `course-comparison-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    
+
     URL.revokeObjectURL(url);
   }
 
-  private generateCSV(): string {
-    const headers = ['Program', 'University', 'Duration', 'Tuition', 'Deadline', 'GRE', 'URL'];
-    const rows = this.savedPrograms.map(program => [
-      program.title,
-      program.university,
-      program.duration || '',
-      program.tuition || '',
-      program.deadline || '',
-      program.gre || '',
-      program.url
-    ]);
-
-    return [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
-      .join('\n');
-  }
-
-  private showPremiumPrompt(): void {
-    this.showNotification('Upgrade to Premium for unlimited features!', 'info');
-  }
-
   private handleUpgrade(): void {
-    // In a real app, this would open a payment flow
-    if (confirm('This would open the upgrade flow. For demo purposes, would you like to enable Premium mode?')) {
-      this.settings.isPremium = true;
-      this.settings.maxSavedPrograms = 999;
-      
-      chrome.storage.local.set({ settings: this.settings });
-      this.updateUI();
-      this.showNotification('Premium activated! (Demo mode)', 'success');
-    }
+    alert('Upgrade feature coming soon! This would redirect to the payment page.');
   }
 
-  private openSettings(): void {
-    // In a real extension, this might open an options page
-    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
-  }
-
-  private showLoading(show: boolean): void {
-    const overlay = document.getElementById('loadingOverlay')!;
-    overlay.style.display = show ? 'flex' : 'none';
-  }
-
-  private showNotification(message: string, type: 'success' | 'error' | 'info'): void {
-    // Simple notification system
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.classList.add('show');
-    }, 100);
-
-    setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
-  }
-
-  private async sendMessage(message: Message): Promise<MessageResponse> {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(message, resolve);
+  private sendMessage(message: Record<string, any>): Promise<any> {
+    console.log('Sending message to background:', message);
+    return new Promise(resolve => {
+      chrome.runtime.sendMessage(message, (response: any) => {
+        console.log('Received response from background:', response);
+        resolve(response || {});
+      });
     });
   }
-
-  private formatDate(timestamp: number): string {
-    return new Date(timestamp).toLocaleDateString();
-  }
 }
 
-// Global instance for HTML onclick handlers
-declare global {
-  interface Window {
-    popupController: PopupController;
-  }
+// Add type annotations for DOMContentLoaded event
+interface Window {
+  document: Document;
 }
 
-const popupController = new PopupController();
-window.popupController = popupController;
+document.addEventListener('DOMContentLoaded', () => {
+  new PopupManager();
+});

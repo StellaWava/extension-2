@@ -9,28 +9,60 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*/*",
-    "http://*/*"
+    "https://*.edu/*",
+    "https://*.ac.uk/*",
+    "https://*.ca/*",
+    "https://*.eu/*",
+    "https://*.za/*",
+    "https://*.ke/*",
+    "https://*.ng/*",
+    "https://*.ug/*",
+    "https://*.gh/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "dist/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "run_at": "document_end"
+      "matches": [
+        "https://*.edu/*",
+        "https://*.ac.uk/*",
+        "https://*.ca/*",
+        "https://*.eu/*",
+        "https://*.za/*",
+        "https://*.ke/*",
+        "https://*.ng/*",
+        "https://*.ug/*",
+        "https://*.gh/*"
+      ],
+      "js": ["dist/content-script.js"],
+      "css": ["dist/popup/popup.css"],
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ],
+  "minimum_chrome_version": "92",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src *;"
+  },
+  "sandbox": {
+    "pages": ["popup/popup.html"]
+  },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_title": "Course Compare",
     "default_icon": {
-      "16": "images/gai.png"
+      "16": "icons/16.png",
+      "32": "icons/16.png",
+      "48": "icons/16.png",
+      "128": "icons/16.png"
     }
   },
   "icons": {
-    "16": "images/gai.png"
+    "16": "icons/16.png",
+    "32": "icons/16.png",
+    "48": "icons/16.png",
+    "128": "icons/16.png"
   }
 }
