@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Course Compare",
+  "version": "1.0.0",
+  "description": "Save and compare graduate degree programs as you browse. Compare tuition, deadlines, duration, location and GRE requirements.",
+  
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "*://*.edu/*",
+    "*://*.ac.uk/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.edu/*",
+        "*://*.ac.uk/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Course Compare",
+    "default_icon": {
+      "16": "16.png"
+    }
+  },
+  
+  "icons": {
+    "16": "16.png"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.html", "popup.css", "popup.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

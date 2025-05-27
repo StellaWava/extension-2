@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Compare</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="title">🎓 Course Compare</div>
+            <div class="subtitle">Graduate Program Comparison</div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="saved-count">
+                <span id="savedCount">0</span>/3 Programs Saved
+            </div>
+            <div class="premium-status" id="premiumStatus">Free Plan</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">📚</div>
+                <div class="empty-title">No Programs Saved</div>
+                <div class="empty-text">Visit graduate program pages and click "Save to Compare" to get started!</div>
+            </div>
+
+            <!-- Saved Programs List -->
+            <div class="saved-programs" id="savedPrograms">
+                <!-- Programs will be dynamically inserted here -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions" id="actions" style="display: none;">
+                <button class="compare-btn" id="compareBtn" disabled>
+                    🔍 Compare Programs
+                </button>
+                <button class="clear-btn" id="clearBtn">
+                    🗑️ Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Upgrade Section -->
+        <div class="upgrade-section" id="upgradeSection">
+            <div class="upgrade-content">
+                <div class="upgrade-title">💎 Upgrade to Premium</div>
+                <div class="upgrade-features">
+                    ✓ Unlimited program saves<br>
+                    ✓ Export comparison to spreadsheet<br>
+                    ✓ Advanced filtering options
+                </div>
+                <div class="upgrade-price">Only $4.99/month</div>
+                <button class="upgrade-btn" id="upgradeBtn">Upgrade Now</button>
+            </div>
+        </div>
+
+        <!-- Comparison Modal -->
+        <div class="comparison-modal" id="comparisonModal">
+            <div class="modal-header">
+                <div class="modal-title">Program Comparison</div>
+                <button class="close-btn" id="closeModal">×</button>
+            </div>
+            <div class="comparison-content" id="comparisonContent">
+                <!-- Comparison table will be generated here -->
+            </div>
+            <div class="modal-actions">
+                <button class="export-btn" id="exportBtn" style="display: none;">
+                    📊 Export to Spreadsheet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
