@@ -59,7 +59,7 @@ function handleSaveProgram(programData, sendResponse) {
     const isPremium = result.isPremium || false;
     const trialUsed = result.trialUsed || 0;
     
-    // Check if program already exists
+    // Check for duplicates
     const exists = savedPrograms.some(p => 
       p.university.toLowerCase() === programData.university.toLowerCase() && 
       p.title.toLowerCase() === programData.title.toLowerCase()
@@ -70,13 +70,13 @@ function handleSaveProgram(programData, sendResponse) {
       return;
     }
     
-    // Check limits
+    // Enforce free tier limit
     if (!isPremium && savedPrograms.length >= 3) {
       sendResponse({ success: false, error: 'Free limit reached! Upgrade to Premium for unlimited saves.' });
       return;
     }
     
-    // Add program
+    // Add new program
     const newProgram = {
       id: Date.now(),
       ...programData,
@@ -85,28 +85,34 @@ function handleSaveProgram(programData, sendResponse) {
     
     savedPrograms.push(newProgram);
     
-    // Update trial usage for free users
     const updates = { savedPrograms };
     if (!isPremium) {
       updates.trialUsed = trialUsed + 1;
     }
     
     chrome.storage.local.set(updates, () => {
-      sendResponse({ success: true, program: newProgram });
+      sendResponse({
+        success: true,
+        program: newProgram,
+        savedPrograms: savedPrograms
+      });
     });
   });
 }
 
+
+// in handleRemoveProgram, return the updated list:
 function handleRemoveProgram(programId, sendResponse) {
   chrome.storage.local.get(['savedPrograms'], (result) => {
     const savedPrograms = result.savedPrograms || [];
     const updatedPrograms = savedPrograms.filter(p => p.id !== programId);
-    
     chrome.storage.local.set({ savedPrograms: updatedPrograms }, () => {
-      sendResponse({ success: true });
+      // include the new array
+      sendResponse({ success: true, savedPrograms: updatedPrograms });
     });
   });
 }
+
 
 function handleUpgradeToPremium(sendResponse) {
   // In a real implementation, this would integrate with Stripe/payment processor
